@@ -1,14 +1,36 @@
 package Test::Mock::Wrapper;
 use base qw(Exporter);
-use Data::Dumper;
 use Test::Deep;
 use Test::More;
-our(@EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 
-BEGIN {
-    @EXPORT_OK = qw(&once &at_least &at_most &exactly &never);
-    %EXPORT_TAGS = ( all=> \@EXPORT_OK );
-}
+=head1 NAME
+
+Test::Mock::Wrapper
+
+=head1 DESCRIPTION
+
+This is another module for mocking objects in perl.  It will wrap around an existing object, allowing you to mock any calls
+for testing purposes.  It also records the arguments passed to the mocked methods for later examination. The verification
+methods are designed to be chainable for easily readable tests for example:
+
+  # Verify method foo was called with argument 'bar' at least once.
+  $mockWrapper->verify('foo')->with('bar')->at_least(1);
+  
+  # Verify method 'baz' was called at least 2 times, but not more than 5 times
+  $mockWrapper->verify('baz')->at_least(2)->at_most(5);
+
+
+=head1 METHODS
+
+=over
+
+=item Test::Mock::Wrapper->new($object)
+
+Creates a new wrapped mock object and a controller/accessor object used to manipulate the mock without poluting the
+namespace of the object being mocked.
+
+=cut
+
 
 sub new {
     my($proto, $object) = @_;
@@ -17,6 +39,73 @@ sub new {
     $controll->{mocked} = Test::Mock::Wrapped->new($controll, $object);
     return $controll;
 }
+
+=item $wrapper->getObject
+
+This method returns the wrapped 'mock' object.  The object is actually a Test::Mock::Wrapped object, however it can be used
+exactly as the object originally passed to the constructor would be, with the additional hooks provieded by the wrapper
+baked in.
+
+=cut
+
+sub getObject {
+    my $self = shift;
+    return $self->{mocked};
+}
+
+sub _call {
+    my $self = shift;
+    my $method = shift;
+    push @{ $self->{__calls}{$method} }, [@_];
+    if (exists $self->{__mocks}{$method}{with}) {
+	my $return_offset = 0;
+	foreach my $test_set (@{ $self->{__mocks}{$method}{with} }){
+	    if(eq_deeply(\@_, $test_set)){
+		return $self->{__mocks}{$method}{conditional_return}[$return_offset];
+	    }
+	    $return_offset++;
+	}
+    }
+    return $self->{__mocks}{$method}{returns};
+}
+
+=item $wrapper->addMock($method, [OPTIONS])
+
+This method is used to add a new mocked method call. Currently supports two optional parameters:
+
+=over 2
+
+=item * B<returns> used to specify a value to be returned when the method is called.
+
+    $wrapper->addMock('foo', returns=>'bar')
+
+=item * B<with> used to limit the scope of the mock based on the value of the arguments.  Test::Deep's eq_deeply is used to
+match against the provided arguments, so any syntax supported there will work with Test::Mock::Wrapper;
+
+    $wrapper->addMock('foo', with=>['baz'], returns=>'bat')
+
+=back
+
+The B<with> option is really only usefull to specify a different return value based on the arguments passed to the mocked method.
+When addMock is called with no B<with> option, the B<returns> value is used as the "default", meaning it will be returned only
+if the arguments passed to the mocked method do not match any of the provided with conditions.
+
+For example:
+
+    $wrapper->addMock('foo', returns=>'bar');
+    $wrapper->addMock('foo', with=>['baz'], returns=>'bat');
+    $wrapper->addMock('foo', with=>['bam'], returns=>'ouch');
+    
+    my $mocked = $wrapper->getObject;
+    
+    print $mocked->foo('baz');  # prints 'bat'
+    print $mocked->foo('flee'); # prints 'bar'
+    print $mocked->foo;         # prints 'bar'
+    print $mocked->foo('bam');  # prints 'ouch'
+    
+
+=cut
+
 sub addMock {
     my $self = shift;
     my($method, %options) = @_;
@@ -41,30 +130,20 @@ sub addMock {
 	}
     }
 }
-    
 
-sub getObject {
-    my $self = shift;
-    return $self->{mocked};
-}
 
-sub call {
-    my $self = shift;
-    my $method = shift;
-    push @{ $self->{__calls}{$method} }, [@_];
-    if (exists $self->{__mocks}{$method}{with}) {
-	my $return_offset = 0;
-	foreach my $test_set (@{ $self->{__mocks}{$method}{with} }){
-	    if(eq_deeply(\@_, $test_set)){
-		return $self->{__mocks}{$method}{conditional_return}[$return_offset];
-	    }
-	    $return_offset++;
-	}
-    }
-    return $self->{__mocks}{$method}{returns};
-}
+=item $wrapper->isMocked($method, $args)
 
-sub is_mocked {
+This is a boolean method which returns true if a call to the specified method on the underlying wrapped object would be handled by a mock,
+and false otherwise. Any conditional mocks specified with the B<with> option will be evaluated accordingly.
+
+    $wrapper->addMock('foo', with=>['bar'], returns=>'baz');
+    $wrapper->isMocked('foo', ['bam']); # False
+    $wrapper->isMocked('foo', ['bar']); # True
+
+=cut
+
+sub isMocked {
     my $self = shift;
     my $method = shift;
     my(@args) = @_;
@@ -90,6 +169,12 @@ sub is_mocked {
     }
 }
 
+=item $wrapper->getCallsTo($method)
+
+This method wil return an array of the arguments passed to each call to the specified method, in the order they were recieved.
+
+=cut
+
 sub getCallsTo {
     my $self = shift;
     my $method = shift;
@@ -98,6 +183,16 @@ sub getCallsTo {
     }
     return;
 }
+
+=item $wrapper->verify($method)
+
+This call returns a Test::Mock::Wrapper::Verify object, which can be used to examine any calls which have been made to the
+specified method thus far.  These objects are intended to be used to simplify testing, and methods called on the it
+are I<chainable> to lend to more readable tests.
+
+=back
+
+=cut
 
 sub verify {
     my($self, $method, %options) = @_;
@@ -123,13 +218,14 @@ sub with {
 
 sub never {
     my $self = shift;
-    ok(scalar(@{ $self->{__calls} }) == 0);
+    ok(scalar(@{ $self->{__calls} }) == 0,
+       "$self->{method} should never be called but was called ".scalar(@{ $self->{__calls} })." time".(scalar(@{ $self->{__calls} }) > 1 ? "s":'').".");
     return $self;
 }
 
 sub once {
     my $self = shift;
-    ok(scalar(@{ $self->{__calls} }) == 1);
+    ok(scalar(@{ $self->{__calls} }) == 1, "$self->{method} should have been called once, but was called ".scalar(@{ $self->{__calls} })." times.");
     return $self;
 }
 
@@ -150,17 +246,16 @@ sub at_most {
 sub exactly {
     my $self = shift;
     my $times = shift;
-    ok(scalar(@{ $self->{__calls} }) == $times);
+    ok(scalar(@{ $self->{__calls} }) == $times, "$self->{method} called ".scalar(@{ $self->{__calls} })." times, wanted exactly $times times");
     return $self;
 }
-
 
 package Test::Mock::Wrapped;
 
 sub new {
     my($proto, $controller, $object) = @_;
     my $class = ref($proto) || $proto;
-    return bless({controller=>$controller, __object=>$object}, $class);
+    return bless({__controller=>$controller, __object=>$object}, $class);
 }
 
 sub AUTOLOAD {
@@ -168,8 +263,8 @@ sub AUTOLOAD {
     my(@args) = @_;
     $AUTOLOAD=~m/::(\w+)$/;
     my $method = $1;
-    if ($self->{controller}->is_mocked($method, @args)) {
-	return $self->{controller}->call($method, @args);
+    if ($self->{__controller}->isMocked($method, @args)) {
+	return $self->{__controller}->_call($method, @args);
     }
     else {
 	if ($self->{__object}->can($method)) {
