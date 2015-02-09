@@ -1,2 +1,2 @@
 # test-mock-wrapper
-Perl Module for wrapping objects and packages for mocking in tests
+Perl Module that wraps objects and packages for mocking in tests
