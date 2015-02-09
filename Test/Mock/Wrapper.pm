@@ -101,50 +101,7 @@ sub getCallsTo {
 
 sub verify {
     my($self, $method, %options) = @_;
-    return Test::Mock::Wrapped::Verify->new($method, $self->{__calls}{$method});
-    return fail("Attempt to verify non-mocked method") if (! exists $self->{__mocks}{$method});
-    
-    return fail("$method was never called") if(! exists $self->{__calls}{$method});
-    my(@__calls);
-    if (! exists $options{with}){
-	(@__calls) = @{ $self->{__calls}{$method} };
-    }
-    else {
-	(@__calls) = grep({eq_deeply($_, $options{with})} @{ $self->{__calls}{$method} });
-    }
-    if (! exists $options{times}) {
-	return ok(1, "$method was called");
-    }else{
-	if (ref $options{times}) {
-	    return ok($options{times}(scalar(@__calls)), "$method was called the correct number of times");
-	}else{
-	    return ok($options{times} == scalar(@__calls), "$method was called $options{times} times");
-	}
-    }
-    
-}
-
-sub once {
-    return sub { return $_[0] == 1 };
-}
-
-sub never {
-    return sub { return $_[0] == 0 };
-}
-
-sub at_least {
-    my $times = shift;
-    return sub { return $_[0] >= $times };
-}
-
-sub at_most {
-    my $times = shift;
-    return sub { return $_[0] <= $times };
-}
-
-sub exactly {
-    my $times = shift;
-    return sub { return $_[0] == $times };
+    return Test::Mock::Wrapped::Verify->new($method, $self->{__calls}{$method});    
 }
 
 package Test::Mock::Wrapped::Verify;
