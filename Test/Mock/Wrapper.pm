@@ -2,6 +2,7 @@ package Test::Mock::Wrapper;
 use base qw(Exporter);
 use Test::Deep;
 use Test::More;
+use Clone qw(clone);
 
 =head1 NAME
 
@@ -24,19 +25,52 @@ methods are designed to be chainable for easily readable tests for example:
 
 =over
 
-=item Test::Mock::Wrapper->new($object)
+=item Test::Mock::Wrapper->new($object, [%options])
 
 Creates a new wrapped mock object and a controller/accessor object used to manipulate the mock without poluting the
 namespace of the object being mocked.
+
+Valid options:
+
+=over 2
+
+=item B<type>=>(B<mock>|B<stub>|B<wrap>): Type of mocking to use.
+
+=over 3
+
+=item B<mock>:  All methods available on the underlying object will be available, and all will be mocked
+
+=item B<stub>:  Any method called on the mock object will be stubbed, even those which do not exist in the original
+object
+
+=item B<wrap> (default): Only methods which have been specifically set up with B<addMock> will be mocked
+all others will be passed through to the underlying object.
+
+=back
+
+=item recordAll=>BOOLEAN (default B<false>)
+
+If set to true, this will record the arguments to all calls made to the object, regardless of the method being
+mocked or not.
+
+=item recordMethod=>(B<copy>|B<clone>)
+
+By default arguments will be a simple copy of @_, use B<clone> to make a deep copy of all data passed in. If references are being
+passed in, the default will not trap the state of the object or reference at the time the method was called, though clone will.
+Naturally using clone will cause a larger memory foot print.
+
+=back
 
 =cut
 
 
 sub new {
-    my($proto, $object) = @_;
+    my($proto, $object, %options) = @_;
+    $options{type} ||= 'wrapped';
+    $options{recordType} ||= 'copy';
     my $class = ref($proto) || $proto;
-    my $controll = bless({__object=>$object, __mocks=>{}, __calls=>{}}, $class);
-    $controll->{mocked} = Test::Mock::Wrapped->new($controll, $object);
+    my $controll = bless({__object=>$object, __mocks=>{}, __calls=>{}, __options=>\%options}, $class);
+    $controll->{__mocked} = Test::Mock::Wrapped->new($controll, $object);
     return $controll;
 }
 
@@ -50,13 +84,14 @@ baked in.
 
 sub getObject {
     my $self = shift;
-    return $self->{mocked};
+    return $self->{__mocked};
 }
 
 sub _call {
     my $self = shift;
     my $method = shift;
-    push @{ $self->{__calls}{$method} }, [@_];
+    my $copy = $self->{options}{recordMethod} eq 'copy' ? [@_] : clone(@_);
+    push @{ $self->{__calls}{$method} }, $copy;
     if (exists $self->{__mocks}{$method}{with}) {
 	my $return_offset = 0;
 	foreach my $test_set (@{ $self->{__mocks}{$method}{with} }){
@@ -147,25 +182,33 @@ sub isMocked {
     my $self = shift;
     my $method = shift;
     my(@args) = @_;
-    if ($self->{__mocks}{$method}) {
-	if (exists $self->{__mocks}{$method}{with}) {
-	    foreach my $test_set (@{ $self->{__mocks}{$method}{with} }){
-		if(eq_deeply(\@args, $test_set)){
-		    return 1;
-		}
-	    }
-	    if ($self->{__mocks}{$method}{returns}) {
-		return 1;
-	    }
-	    
-	    return;
-	}
-	else {
-	    return 1;
-	}
+    if ($self->{__options}{type} eq 'stub') {
+	return 1;
+    }
+    elsif ($self->{__options}{type} eq 'mock') {
+	return $self->{__object}->can($method);
     }
     else {
-	return;
+	if ($self->{__mocks}{$method}) {
+	    if (exists $self->{__mocks}{$method}{with}) {
+		foreach my $test_set (@{ $self->{__mocks}{$method}{with} }){
+		    if(eq_deeply(\@args, $test_set)){
+			return 1;
+		    }
+		}
+		if ($self->{__mocks}{$method}{returns}) {
+		    return 1;
+		}
+		
+		return;
+	    }
+	    else {
+		return 1;
+	    }
+	}
+	else {
+	    return;
+	}
     }
 }
 
@@ -251,6 +294,7 @@ sub exactly {
 }
 
 package Test::Mock::Wrapped;
+use Carp;
 
 sub new {
     my($proto, $controller, $object) = @_;
@@ -272,7 +316,7 @@ sub AUTOLOAD {
 	    goto &{ ref($self->{__object}).'::'.$method };
 	}
 	else {
-	    die "No such method";
+	    croak qq{Can't locate object method "$method" via package "LWP::UserAgent"};
 	}
     }
 }
