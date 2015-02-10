@@ -66,7 +66,7 @@ Naturally using clone will cause a larger memory foot print.
 
 sub new {
     my($proto, $object, %options) = @_;
-    $options{type} ||= 'wrapped';
+    $options{type} ||= 'wrap';
     $options{recordType} ||= 'copy';
     my $class = ref($proto) || $proto;
     my $controll = bless({__object=>$object, __mocks=>{}, __calls=>{}, __options=>\%options}, $class);
@@ -92,6 +92,8 @@ sub _call {
     my $method = shift;
     my $copy = $self->{options}{recordMethod} eq 'copy' ? [@_] : clone(@_);
     push @{ $self->{__calls}{$method} }, $copy;
+    
+    # Check to see if we have an argument specific return value
     if (exists $self->{__mocks}{$method}{with}) {
 	my $return_offset = 0;
 	foreach my $test_set (@{ $self->{__mocks}{$method}{with} }){
@@ -101,7 +103,22 @@ sub _call {
 	    $return_offset++;
 	}
     }
-    return $self->{__mocks}{$method}{returns};
+    
+    
+    # If we've gotten here, we did not find an argument specific return
+    if(exists $self->{__mocks}{$method}{returns}){
+	# I we have a default, use it
+	return $self->{__mocks}{$method}{returns};
+    }
+    elsif($self->{__options}{type} ne 'wrap'){
+	# No default, type equals stub or mock, return undef.
+	return undef;
+    }
+    else{
+	# We do not have a default, and our mock type is not stub, try to call underlying object.
+	unshift @_, $self->{__object}; 
+	goto &{ ref($self->{__object}).'::'.$method };
+    }
 }
 
 =item $wrapper->addMock($method, [OPTIONS])
