@@ -3,12 +3,13 @@ use strict;
 use warnings;
 use Test::Spec;
 use Test::More;
+use Test::Deep;
 use lib qw(..);
 use Test::Mock::Wrapper;
 use base qw(Test::Spec);
 
 describe "Test::Mock::Wrapper" => sub {
-    describe "type=wrap" => sub {
+    describe "basic functionality" => sub {
 	my($mock);
 	before sub {
 	    $mock = Test::Mock::Wrapper->new(UnderlyingObjectToTest->new());  
@@ -16,6 +17,27 @@ describe "Test::Mock::Wrapper" => sub {
 	it "uses mocked response for basic mocked method" => sub {
 	    $mock->addMock('foo', returns=>'bam');
 	    is($mock->getObject->foo(), 'bam');
+	};
+	it "returns a conditional return value if the with condition is met" => sub {
+	    $mock->addMock('foo', with=>['man'], returns=>'choo');
+	    $mock->addMock('foo', returns=>'bam');
+	    is($mock->getObject->foo('man'), 'choo');
+	};
+	it "returns default return value if no with condition is met" => sub {
+	    $mock->addMock('foo', with=>['man'], returns=>'choo');
+	    $mock->addMock('foo', returns=>'bam');
+	    is($mock->getObject->foo('who'), 'bam');
+	};
+	it "returns first provided return value if multiple conditions are met" => sub {
+	    $mock->addMock('foo', with=>['man', ignore()], returns=>'choo');
+	    $mock->addMock('foo', with=>[ignore(), 'bat'], returns=>'foo');
+	    is($mock->getObject->foo('man', 'bat'), 'choo');
+	};
+    };
+    describe "type=wrap" => sub {
+	my($mock);
+	before sub {
+	    $mock = Test::Mock::Wrapper->new(UnderlyingObjectToTest->new());  
 	};
 	it "calls the original object for non-mocked method" => sub {
 	    is($mock->getObject->baz, 'bat');
@@ -33,10 +55,6 @@ describe "Test::Mock::Wrapper" => sub {
 	before sub {
 	    $mock = Test::Mock::Wrapper->new(UnderlyingObjectToTest->new(), type=>'stub');  
 	};
-	it "uses mocked response for basic mocked method" => sub {
-	    $mock->addMock('foo', returns=>'bam');
-	    is($mock->getObject->foo(), 'bam');
-	};
 	it "returns undef for non mocked method" => sub {
 	    is($mock->getObject->baz, undef);
 	};
@@ -52,10 +70,6 @@ describe "Test::Mock::Wrapper" => sub {
 	my($mock);
 	before sub {
 	    $mock = Test::Mock::Wrapper->new(UnderlyingObjectToTest->new(), type=>'mock');  
-	};
-	it "uses mocked response for basic mocked method" => sub {
-	    $mock->addMock('foo', returns=>'bam');
-	    is($mock->getObject->foo(), 'bam');
 	};
 	it "returns undef for non mocked method" => sub {
 	    is($mock->getObject->baz, undef);

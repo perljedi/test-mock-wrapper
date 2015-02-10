@@ -1,4 +1,6 @@
 package Test::Mock::Wrapper;
+use strict;
+use warnings;
 use base qw(Exporter);
 use Test::Deep;
 use Test::More;
@@ -66,11 +68,27 @@ Naturally using clone will cause a larger memory foot print.
 
 sub new {
     my($proto, $object, %options) = @_;
-    $options{type} ||= 'wrap';
+    $options{type} ||= ref($object) ? 'wrap' : 'stub';
     $options{recordType} ||= 'copy';
     my $class = ref($proto) || $proto;
     my $controll = bless({__object=>$object, __mocks=>{}, __calls=>{}, __options=>\%options}, $class);
     $controll->{__mocked} = Test::Mock::Wrapped->new($controll, $object);
+    if (! ref($object)) {
+	no strict qw(refs);
+	no warnings 'redefine';
+	my $pack = $object;
+	$pack=~s{::}{/}g;
+	require $pack.'.pm';
+	foreach my $sym (keys %{ $object .'::'}){
+	    if ($sym eq 'new') {
+		*{ $object.'::'.$sym } = sub { return $controll->{__mocked} };
+	    }
+	    elsif (defined &{ $object.'::'.$sym }) {
+		*{ $object.'::'.$sym } = sub { $controll->_call($sym, @_); };
+	    }
+	}
+    }
+    
     return $controll;
 }
 
@@ -90,7 +108,7 @@ sub getObject {
 sub _call {
     my $self = shift;
     my $method = shift;
-    my $copy = $self->{options}{recordMethod} eq 'copy' ? [@_] : clone(@_);
+    my $copy = $self->{__options}{recordType} eq 'copy' ? [@_] : clone(@_);
     push @{ $self->{__calls}{$method} }, $copy;
     
     # Check to see if we have an argument specific return value
@@ -322,7 +340,7 @@ sub new {
 sub AUTOLOAD {
     my $self = shift;
     my(@args) = @_;
-    $AUTOLOAD=~m/::(\w+)$/;
+    $Test::Mock::Wrapped::AUTOLOAD=~m/::(\w+)$/;
     my $method = $1;
     if ($self->{__controller}->isMocked($method, @args)) {
 	return $self->{__controller}->_call($method, @args);
