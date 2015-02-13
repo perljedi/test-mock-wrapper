@@ -13,12 +13,30 @@ Examples
 ==================
 
 ```perl
-    my $ua = LWP::UserAgent->new();
-    my $control = Test::MockWrapper($ua);
-    $control->addMock('request', with=>[HTTP::Request->new(GET=>'http://metacpan.org')], 
-                                 returns=>HTTP::Response->new(200, 'OK', ['Content-Type' => 'text/plain'], 'this is not metacpan');
+my $ua = LWP::UserAgent->new();
+my $control = Test::Mock::Wrapper($ua);
+my $mockedResponse = HTTP::Response->new(200, 
+                                         'OK', 
+                                         ['Content-Type' => 'text/plain'], 
+                                         'this is not metacpan');
+$control->addMock('request', with=>[HTTP::Request->new(GET=>'http://metacpan.org')], 
+                             returns=>$mockedResponse);
 
-    my $res = $control->getObject->request(HTTP::Request->new(GET=>'http://metacpan.org'));
-    is($res->content, 'this is not metacpan');
-    $control->verify('request')->exactly(1);
+my $res = $control->getObject->request(HTTP::Request->new(GET=>'http://metacpan.org'));
+is($res, $mockedResponse);
+$control->verify('request')->exactly(1);
 ```
+
+```perl
+my $control = Test::Mock::Wrapper('LWP::UserAgent');
+my $ua = LWP::UserAgent->new();
+my $mockedResponse = HTTP::Response->new(200,
+                                         'OK', 
+                                         ['Content-Type' => 'text/plain'],
+                                         'this is not metacpan');
+$control->addMock('request', with=>[HTTP::Request->new(GET=>'http://metacpan.org')], 
+                             returns=>$mockedResponse);
+
+my $res = $ua->request(HTTP::Request->new(GET=>'http://metacpan.org'));
+is($res, $mockedResponse);
+$control->verify('request')->exactly(1);
