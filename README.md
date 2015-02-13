@@ -9,9 +9,9 @@ easily readable tests.
 
 See `perldoc Test::Mock::Wrapper` for syntax example and usage information.
 
-Examples
-==================
+## Examples
 
+### Mocking an instance
 ```perl
 my $ua = LWP::UserAgent->new();
 my $control = Test::Mock::Wrapper($ua);
@@ -26,6 +26,8 @@ my $res = $control->getObject->request(HTTP::Request->new(GET=>'http://metacpan.
 is($res, $mockedResponse);
 $control->verify('request')->exactly(1);
 ```
+
+### Mocking the entire package
 
 ```perl
 my $control = Test::Mock::Wrapper('LWP::UserAgent');
