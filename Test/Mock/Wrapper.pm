@@ -5,6 +5,7 @@ use base qw(Exporter);
 use Test::Deep;
 use Test::More;
 use Clone qw(clone);
+use Scalar::Util qw(weaken isweak);
 
 =head1 NAME
 
@@ -76,20 +77,28 @@ sub new {
     if (! ref($object)) {
 	no strict qw(refs);
 	no warnings 'redefine';
-	my $pack = $object;
-	$pack=~s{::}{/}g;
-	require $pack.'.pm';
 	foreach my $sym (keys %{ $object .'::'}){
 	    if ($sym eq 'new') {
+		push @{ $controll->{__wrapped_symbols} }, {name => $object.'::'.$sym, symbol => \&{ $object.'::'.$sym }};
 		*{ $object.'::'.$sym } = sub { return $controll->{__mocked} };
 	    }
 	    elsif (defined &{ $object.'::'.$sym }) {
+		push @{ $controll->{__wrapped_symbols} }, {name => $object.'::'.$sym, symbol => *{ $object.'::'.$sym }};
 		*{ $object.'::'.$sym } = sub { $controll->_call($sym, @_); };
 	    }
+	    
 	}
     }
-    
     return $controll;
+}
+
+sub DESTROY {
+    my $controll = shift;
+    no strict qw(refs);
+    no warnings 'redefine';
+    foreach my $sym (@{ $controll->{__wrapped_symbols} }){
+	*{ $sym->{name} } = $sym->{symbol};
+    }
 }
 
 =item $wrapper->getObject
@@ -330,11 +339,15 @@ sub exactly {
 
 package Test::Mock::Wrapped;
 use Carp;
+use Scalar::Util qw(weaken isweak);
 
 sub new {
     my($proto, $controller, $object) = @_;
+    weaken($controller);
     my $class = ref($proto) || $proto;
-    return bless({__controller=>$controller, __object=>$object}, $class);
+    my $self = bless({__controller=>$controller, __object=>$object}, $class);
+    weaken($self->{__controller});
+    return $self;
 }
 
 sub AUTOLOAD {

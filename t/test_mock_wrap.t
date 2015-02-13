@@ -7,6 +7,7 @@ use Test::Deep;
 use lib qw(..);
 use Test::Mock::Wrapper;
 use base qw(Test::Spec);
+use Scalar::Util qw(weaken isweak);
 
 describe "Test::Mock::Wrapper" => sub {
     describe "basic functionality" => sub {
@@ -81,6 +82,18 @@ describe "Test::Mock::Wrapper" => sub {
 	    };
 	    ok(defined $@);
 	};
+    };
+    describe "Package Mocking" => sub {
+	it "returns a mocked object from a call to new in the mocked package" => sub {
+	    my $mocker = Test::Mock::Wrapper->new('UnderlyingObjectToTest');
+	    my $test_object = UnderlyingObjectToTest->new();
+	    isa_ok($test_object, 'Test::Mock::Wrapped');
+	    $mocker->DESTROY();
+	};
+	it "restores underlying object after destroy" => sub {
+	    my $test_object = UnderlyingObjectToTest->new();
+	    isa_ok($test_object, 'UnderlyingObjectToTest');
+	}
     };
 };
 
