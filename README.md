@@ -29,7 +29,6 @@ $control->verify('request')->exactly(1);
 
 ```perl
 my $control = Test::Mock::Wrapper('LWP::UserAgent');
-my $ua = LWP::UserAgent->new();
 my $mockedResponse = HTTP::Response->new(200,
                                          'OK', 
                                          ['Content-Type' => 'text/plain'],
@@ -37,6 +36,14 @@ my $mockedResponse = HTTP::Response->new(200,
 $control->addMock('request', with=>[HTTP::Request->new(GET=>'http://metacpan.org')], 
                              returns=>$mockedResponse);
 
+my $ua = LWP::UserAgent->new();
 my $res = $ua->request(HTTP::Request->new(GET=>'http://metacpan.org'));
 is($res, $mockedResponse);
 $control->verify('request')->exactly(1);
+
+$control->DESTROY();
+
+my $realAgent = LWP::UserAgent->new();
+# Actually Fetch metacpan!
+my $res = $realAgent->request(HTTP::Request->new(GET=>'http://metacpan.org'));
+
