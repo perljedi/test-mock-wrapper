@@ -66,7 +66,6 @@ Naturally using clone will cause a larger memory foot print.
 
 =cut
 
-
 sub new {
     my($proto, $object, %options) = @_;
     $options{type} ||= ref($object) ? 'wrap' : 'stub';
@@ -83,7 +82,7 @@ sub new {
 		*{ $object.'::'.$sym } = sub { return $controll->{__mocked} };
 	    }
 	    elsif (defined &{ $object.'::'.$sym }) {
-		push @{ $controll->{__wrapped_symbols} }, {name => $object.'::'.$sym, symbol => *{ $object.'::'.$sym }};
+		push @{ $controll->{__wrapped_symbols} }, {name => $object.'::'.$sym, symbol => \&{ $object.'::'.$sym }};
 		*{ $object.'::'.$sym } = sub { $controll->_call($sym, @_); };
 	    }
 	    

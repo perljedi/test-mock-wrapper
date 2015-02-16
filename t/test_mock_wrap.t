@@ -86,19 +86,20 @@ describe "Test::Mock::Wrapper" => sub {
     describe "Package Mocking" => sub {
 	it "returns a mocked object from a call to new in the mocked package" => sub {
 	    my $mocker = Test::Mock::Wrapper->new('UnderlyingObjectToTest');
-	    my $test_object = UnderlyingObjectToTest->new();
+	    my $test_object = UnderlyingObjectToTest->new(type=>'stub');
 	    isa_ok($test_object, 'Test::Mock::Wrapped');
+	    is($test_object->foo, undef);
 	    $mocker->DESTROY();
 	};
 	it "restores underlying object after destroy" => sub {
 	    my $test_object = UnderlyingObjectToTest->new();
 	    isa_ok($test_object, 'UnderlyingObjectToTest');
-	}
+	    is($test_object->foo, 'bar');
+	};
     };
 };
 
 runtests;
-
 
 package UnderlyingObjectToTest;
 
@@ -113,3 +114,4 @@ sub foo {
 sub baz {
     return 'bat';
 }
+
