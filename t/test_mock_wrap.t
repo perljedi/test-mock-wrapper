@@ -97,6 +97,71 @@ describe "Test::Mock::Wrapper" => sub {
 	    is($test_object->foo, 'bar');
 	};
     };
+    describe "Call verification" => sub {
+	my($mock);
+	before sub {
+	    $mock = Test::Mock::Wrapper->new(UnderlyingObjectToTest->new(), type=>'mock');  
+	};
+	it "suppports exact call number verification" => sub {
+	    $mock->addMock('foo');
+	    $mock->getObject->foo;
+	    $mock->verify('foo')->exactly(1);
+	    $mock->addMock('baz');
+	    $mock->getObject->baz;
+	    $mock->getObject->baz;
+	    $mock->getObject->baz;
+	    $mock->verify('baz')->exactly(3);
+	};
+	it "suppports never" => sub {
+	    $mock->addMock('foo');
+	    $mock->verify('foo')->never;
+	};
+	it "suppports once" => sub {
+	    $mock->addMock('foo');
+	    $mock->getObject->foo;
+	    $mock->verify('foo')->once;
+	};
+	it "suppports at least" => sub {
+	    $mock->addMock('foo');
+	    $mock->getObject->foo;
+	    $mock->getObject->foo;
+	    $mock->getObject->foo;
+	    $mock->verify('foo')->at_least(1);
+	};
+	it "suppports at most" => sub {
+	    $mock->addMock('foo');
+	    $mock->getObject->foo;
+	    $mock->getObject->foo;
+	    $mock->getObject->foo;
+	    $mock->verify('foo')->at_most(4);
+	};
+	it "is chainable" => sub {
+	    $mock->addMock('foo');
+	    $mock->getObject->foo;
+	    $mock->verify('foo')->once->at_least(1)->at_most(1);
+	};
+	it "can be queried by 'with'" => sub {
+	    $mock->addMock('foo');
+	    $mock->getObject->foo({name=>'dave', status=>'cool'});
+	    $mock->getObject->foo({name=>'dave', status=>'smart'});
+	    $mock->getObject->foo({name=>'juli', status=>'cute'});
+	    $mock->getObject->foo({name=>'tom', status=>'smart'});
+	    $mock->getObject->foo({name=>'dan', status=>'lazy'});
+	    $mock->verify('foo')->with([{name=>'dave', status=>ignore()}])->exactly(2);
+	    $mock->verify('foo')->with([{name=>'dave', status=>ignore()}])->at_least(1)->with([{name=>ignore(), status=>'cool'}])->once;
+	};
+	it "retains call list at each distinct state" => sub {
+	    $mock->addMock('foo');
+	    $mock->getObject->foo({name=>'dave', status=>'cool'});
+	    $mock->getObject->foo({name=>'dave', status=>'smart'});
+	    $mock->getObject->foo({name=>'juli', status=>'cute'});
+	    $mock->getObject->foo({name=>'tom', status=>'smart'});
+	    $mock->getObject->foo({name=>'dan', status=>'lazy'});
+	    my $verifier = $mock->verify('foo');
+	    $verifier->with([{name=>'dave', status=>ignore()}])->exactly(2);
+	    $verifier->with([{name=>'juli', status=>ignore()}])->once;
+	}
+    };
 };
 
 runtests;

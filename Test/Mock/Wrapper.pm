@@ -141,7 +141,7 @@ sub _call {
 	return undef;
     }
     else{
-	# We do not have a default, and our mock type is not stub, try to call underlying object.
+	# We do not have a default, and our mock type is not stub or mock, try to call underlying object.
 	unshift @_, $self->{__object}; 
 	goto &{ ref($self->{__object}).'::'.$method };
     }
@@ -288,11 +288,18 @@ sub verify {
 package Test::Mock::Wrapped::Verify;
 use Test::Deep;
 use Test::More;
+use Clone qw(clone);
 
 sub new {
     my($proto, $method, $calls) = @_;
+    $calls ||= [];
     my $class = ref($proto) || $proto;
     return bless({__calls=>$calls, method=>$method}, $class);
+}
+
+sub getCalls {
+    my $self = shift;
+    return clone($self->{__calls});
 }
 
 sub with {
@@ -363,7 +370,8 @@ sub AUTOLOAD {
 	    goto &{ ref($self->{__object}).'::'.$method };
 	}
 	else {
-	    croak qq{Can't locate object method "$method" via package "LWP::UserAgent"};
+	    my $pack = ref($self->{__object});
+	    croak qq{Can't locate object method "$method" via package "$pack"};
 	}
     }
 }
