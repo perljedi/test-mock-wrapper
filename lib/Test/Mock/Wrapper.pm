@@ -7,9 +7,15 @@ use Test::More;
 use Clone qw(clone);
 use Scalar::Util qw(weaken isweak);
 
+# ABSTRACT: Flexible and prowerful class and object mocking library for perl
+
 =head1 NAME
 
 Test::Mock::Wrapper
+
+=head1 VERSION
+
+version 0.001
 
 =head1 DESCRIPTION
 
