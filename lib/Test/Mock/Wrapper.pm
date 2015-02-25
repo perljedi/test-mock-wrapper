@@ -1,4 +1,5 @@
 package Test::Mock::Wrapper;
+
 use strict;
 use warnings;
 use base qw(Exporter);
@@ -6,6 +7,8 @@ use Test::Deep;
 use Test::More;
 use Clone qw(clone);
 use Scalar::Util qw(weaken isweak);
+require Test::Mock::Wrapped;
+require Test::Mock::Wrapped::Verify;
 
 # ABSTRACT: Flexible and prowerful class and object mocking library for perl
 
@@ -16,6 +19,20 @@ Test::Mock::Wrapper
 =head1 VERSION
 
 version 0.001
+
+=head1 SYNOPSIS
+
+    use Test::Mock::Wrapper;
+    use Foo;
+    
+    my $foo = Foo->new;
+    my $wrapper = Test::Mock::Wrapper->new($foo);
+    
+    $wrapper->addMock('bar', with=>['baz'], returns=>'snarf');
+    
+    &callBar($wrapper->getObject);
+    
+    $wrapper->verify('bar')->with(['baz'])->once;
 
 =head1 DESCRIPTION
 
@@ -291,96 +308,16 @@ sub verify {
     return Test::Mock::Wrapped::Verify->new($method, $self->{__calls}{$method});    
 }
 
-package Test::Mock::Wrapped::Verify;
-use Test::Deep;
-use Test::More;
-use Clone qw(clone);
-
-sub new {
-    my($proto, $method, $calls) = @_;
-    $calls ||= [];
-    my $class = ref($proto) || $proto;
-    return bless({__calls=>$calls, method=>$method}, $class);
-}
-
-sub getCalls {
-    my $self = shift;
-    return clone($self->{__calls});
-}
-
-sub with {
-    my $self = shift;
-    my $matcher = shift;
-    my (@__calls) = grep({eq_deeply($_, $matcher)} @{ $self->{__calls} });
-    return bless({__calls=>\@__calls, method=>$self->{method}}, ref($self));
-}
-
-sub never {
-    my $self = shift;
-    ok(scalar(@{ $self->{__calls} }) == 0,
-       "$self->{method} should never be called but was called ".scalar(@{ $self->{__calls} })." time".(scalar(@{ $self->{__calls} }) > 1 ? "s":'').".");
-    return $self;
-}
-
-sub once {
-    my $self = shift;
-    ok(scalar(@{ $self->{__calls} }) == 1, "$self->{method} should have been called once, but was called ".scalar(@{ $self->{__calls} })." times.");
-    return $self;
-}
-
-sub at_least {
-    my $self = shift;
-    my $times = shift;
-    ok(scalar(@{ $self->{__calls} }) >= $times, "$self->{method} only called ".scalar(@{ $self->{__calls} })." times, wanted at least $times\n");
-    return $self;
-}
-
-sub at_most {
-    my $self = shift;
-    my $times = shift;
-    ok(scalar(@{ $self->{__calls} }) <= $times, "$self->{method} called ".scalar(@{ $self->{__calls} })." times, wanted at most $times\n");
-    return $self;
-}
-
-sub exactly {
-    my $self = shift;
-    my $times = shift;
-    ok(scalar(@{ $self->{__calls} }) == $times, "$self->{method} called ".scalar(@{ $self->{__calls} })." times, wanted exactly $times times");
-    return $self;
-}
-
-package Test::Mock::Wrapped;
-use Carp;
-use Scalar::Util qw(weaken isweak);
-
-sub new {
-    my($proto, $controller, $object) = @_;
-    weaken($controller);
-    my $class = ref($proto) || $proto;
-    my $self = bless({__controller=>$controller, __object=>$object}, $class);
-    weaken($self->{__controller});
-    return $self;
-}
-
-sub AUTOLOAD {
-    my $self = shift;
-    my(@args) = @_;
-    $Test::Mock::Wrapped::AUTOLOAD=~m/::(\w+)$/;
-    my $method = $1;
-    if ($self->{__controller}->isMocked($method, @args)) {
-	return $self->{__controller}->_call($method, @args);
-    }
-    else {
-	if ($self->{__object}->can($method)) {
-	    unshift @_, $self->{__object}; 
-	    goto &{ ref($self->{__object}).'::'.$method };
-	}
-	else {
-	    my $pack = ref($self->{__object});
-	    croak qq{Can't locate object method "$method" via package "$pack"};
-	}
-    }
-}
-
 
 return 42;
+
+=head1 AUTHOR
+
+  Dave Mueller <dave@perljedi.com>
+
+=head1 COPYRIGHT AND LICENSE
+
+This software is copyright (c) 2015 by Dave Mueller.
+
+This is free software; you can redistribute it and/or modify it under the
+same terms as the Perl 5 programming language system itself.
