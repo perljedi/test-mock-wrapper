@@ -2,6 +2,8 @@ Revision history for {{$dist->name}}
 
 {{$NEXT}}
 
+0.03 Wed Mar 04 2015
+
 Added method "resetCalls" to allow clearing the call records. Useful if you use the same
 mock wrapper in multiple tests rather than creating a new on for each.
 
