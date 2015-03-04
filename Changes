@@ -2,6 +2,12 @@ Revision history for {{$dist->name}}
 
 {{$NEXT}}
 
+Added method "resetCalls" to allow clearing the call records. Useful if you use the same
+mock wrapper in multiple tests rather than creating a new on for each.
+
 0.02 Wed Mar 04 2015
+
+Revampd package mocking algorithm to use metaclass. much more eligant than hacking
+on the symbol table directly.
 
 0.001 Thu Feb 26 2015

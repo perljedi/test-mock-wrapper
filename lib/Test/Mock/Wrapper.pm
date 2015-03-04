@@ -138,6 +138,11 @@ sub getObject {
     return $self->{__mocked};
 }
 
+sub resetCalls {
+    my $self = shift;
+    $self->{__calls} = {};
+}
+
 sub _call {
     my $self = shift;
     my $method = shift;
