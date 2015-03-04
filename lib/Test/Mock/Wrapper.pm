@@ -96,18 +96,19 @@ sub new {
     my $controll = bless({__object=>$object, __mocks=>{}, __calls=>{}, __options=>\%options}, $class);
     $controll->{__mocked} = Test::Mock::Wrapped->new($controll, $object);
     if (! ref($object)) {
-	no strict qw(refs);
-	no warnings 'redefine';
-	foreach my $sym (keys %{ $object .'::'}){
-	    if ($sym eq 'new') {
-		push @{ $controll->{__wrapped_symbols} }, {name => $object.'::'.$sym, symbol => \&{ $object.'::'.$sym }};
-		*{ $object.'::'.$sym } = sub { return $controll->{__mocked} };
+	eval "package $object; use metaclass;";  
+	my $metaclass = $object->meta;
+	$controll->{__metaclass} = $metaclass;
+	foreach my $method_name ($metaclass->get_method_list){
+	    push @{ $controll->{__wrapped_symbols} }, {name => $method_name, symbol => $metaclass->find_method_by_name($method_name)};
+	    if ($method_name eq 'new') {
+		my $method = $metaclass->remove_method($method_name);
+		$metaclass->add_method($method_name, sub{ return $controll->getObject;});
+		
+	    }else{
+		my $method = $metaclass->remove_method($method_name);
+		$metaclass->add_method($method_name, sub{ $controll->_call($method_name, @_); });
 	    }
-	    elsif (defined &{ $object.'::'.$sym }) {
-		push @{ $controll->{__wrapped_symbols} }, {name => $object.'::'.$sym, symbol => \&{ $object.'::'.$sym }};
-		*{ $object.'::'.$sym } = sub { $controll->_call($sym, @_); };
-	    }
-	    
 	}
     }
     return $controll;
@@ -116,9 +117,11 @@ sub new {
 sub DESTROY {
     my $controll = shift;
     no strict qw(refs);
-    no warnings 'redefine';
+    no warnings 'redefine', 'prototype';
     foreach my $sym (@{ $controll->{__wrapped_symbols} }){
-	*{ $sym->{name} } = $sym->{symbol};
+	if ($sym->{symbol}) {
+	    $controll->{__metaclass}->add_method($sym->{name}, $sym->{symbol}->body);
+	}
     }
 }
 
@@ -307,9 +310,11 @@ sub verify {
     return Test::Mock::Wrapper::Verify->new($method, $self->{__calls}{$method});    
 }
 
+
 package Test::Mock::Wrapped;
 use Carp;
 use Scalar::Util qw(weaken isweak);
+use vars qw(@ISA);
 
 sub new {
     my($proto, $controller, $object) = @_;

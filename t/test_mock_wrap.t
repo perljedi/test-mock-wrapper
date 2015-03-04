@@ -97,6 +97,7 @@ describe "Test::Mock::Wrapper" => sub {
 	    is($test_object->foo, 'bar');
 	};
     };
+
     describe "Call verification" => sub {
 	my($mock);
 	before sub {
