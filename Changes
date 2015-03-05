@@ -2,22 +2,22 @@ Revision history for {{$dist->name}}
 
 {{$NEXT}}
 
-0.04 Thu Mar 05 2015
+  - Refine returns to allow methods to return arrays
+  - Update pod so that version increments correctly
+  - Added documentation about package mocking
 
-Refined "resetCalls" to allow only history of specific methods to be clear.
-Added tests for "resetCalls"
+0.04 Wed Mar 04 2015
 
-Added method "resetMocks" to reset the state of specified mock conditions,
-with tests for same.
+   - Refined "resetCalls" to allow only history of specific methods to be clear.
+   - Added tests for "resetCalls"
+   - Added method "resetMocks" to reset the state of specified mock conditions, with tests for same.
 
 0.03 Wed Mar 04 2015
 
-Added method "resetCalls" to allow clearing the call records. Useful if you use the same
-mock wrapper in multiple tests rather than creating a new on for each.
+  - Added method "resetCalls" to allow clearing the call records. Useful if you use the same mock wrapper in multiple tests rather than creating a new on for each.
 
 0.02 Wed Mar 04 2015
 
-Revampd package mocking algorithm to use metaclass. much more eligant than hacking
-on the symbol table directly.
+  - Revampd package mocking algorithm to use metaclass. much more eligant than hacking on the symbol table directly.
 
 0.001 Thu Feb 26 2015

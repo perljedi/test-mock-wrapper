@@ -15,11 +15,9 @@ require Test::Mock::Wrapper::Verify;
 
 Test::Mock::Wrapper
 
-=head1 VERSION
-
-version 0.001
-
 =head1 SYNOPSIS
+
+=head2 Mock a single instance of an object
 
     use Test::Mock::Wrapper;
     use Foo;
@@ -33,6 +31,24 @@ version 0.001
     
     $wrapper->verify('bar')->with(['baz'])->once;
 
+=head2 Mock an entire package
+
+    use Test::Mock::Wrapper;
+    use Foo;
+    
+    my $wrapper = Test::Mock::Wrapper->new('Foo');
+    
+    $wrapper->addMock('bar', with=>['baz'], returns=>'snarf');
+    
+    &callBar(Foo->new);
+    
+    $wrapper->verify('bar')->with(['baz'])->once;
+    
+    $wrapper->DESTROY;
+    
+    my $actualFoo = Foo->new;
+    
+    
 =head1 DESCRIPTION
 
 This is another module for mocking objects in perl.  It will wrap around an existing object, allowing you to mock any calls
@@ -45,6 +61,12 @@ methods are designed to be chainable for easily readable tests for example:
   # Verify method 'baz' was called at least 2 times, but not more than 5 times
   $mockWrapper->verify('baz')->at_least(2)->at_most(5);
 
+Test::Mock::Wrapper can also be used to wrap an entire package.  When this is done, Test::Mock::Wrapper will actually use
+L<metaclass> to alter the symbol table an wrap all methods in the package. The same rules about mocking type (see options to
+new below) apply to mocked packages, but you only get one wrapper that records and mocks calls to all instances of the package,
+and any package methods called outside of an object. When mocking an entire package, destroying the wrapper object will "unwrap"
+the package, restoring the symbol table to is original unmocked state. Objects instantiated before the wrapper was destroyed
+may not behave correctly (i.e. throw exceptions).
 
 =head1 METHODS
 
@@ -184,7 +206,7 @@ sub _call {
 	my $return_offset = 0;
 	foreach my $test_set (@{ $self->{__mocks}{$method}{with} }){
 	    if(eq_deeply(\@_, $test_set)){
-		return $self->{__mocks}{$method}{conditional_return}[$return_offset];
+		return ref $self->{__mocks}{$method}{conditional_return}[$return_offset] eq 'ARRAY' ? @{$self->{__mocks}{$method}{conditional_return}[$return_offset]} : $self->{__mocks}{$method}{conditional_return}[$return_offset];
 	    }
 	    $return_offset++;
 	}
@@ -194,7 +216,7 @@ sub _call {
     # If we've gotten here, we did not find an argument specific return
     if(exists $self->{__mocks}{$method}{returns}){
 	# I we have a default, use it
-	return $self->{__mocks}{$method}{returns};
+	return ref $self->{__mocks}{$method}{returns} eq 'ARRAY' ? @{ $self->{__mocks}{$method}{returns} } : $self->{__mocks}{$method}{returns}; 
     }
     elsif($self->{__options}{type} ne 'wrap'){
 	# No default, type equals stub or mock, return undef.
@@ -216,6 +238,15 @@ This method is used to add a new mocked method call. Currently supports two opti
 =item * B<returns> used to specify a value to be returned when the method is called.
 
     $wrapper->addMock('foo', returns=>'bar')
+    
+Note: if "returns" recieves an array refernce, it will return it as an array.  To return an actual
+array reference, wrap it in another reference.
+
+    $wrapper->addMock('foo', returns=>['Dave', 'Fred', 'Harry'])
+    my(@names) = $wrapper->getObject->foo;
+    
+    $wrapper->addMock('baz', returns=>[['Dave', 'Fred', 'Harry']]);
+    my($rnames) = $wrapper->getObject->baz;
 
 =item * B<with> used to limit the scope of the mock based on the value of the arguments.  Test::Deep's eq_deeply is used to
 match against the provided arguments, so any syntax supported there will work with Test::Mock::Wrapper;
@@ -375,6 +406,7 @@ sub AUTOLOAD {
 	}
 	else {
 	    my $pack = ref($self->{__object});
+	    print STDERR "Failing from wrapper autoload\n";
 	    croak qq{Can't locate object method "$method" via package "$pack"};
 	}
     }
