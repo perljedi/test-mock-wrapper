@@ -2,6 +2,8 @@ Revision history for {{$dist->name}}
 
 {{$NEXT}}
 
+0.05 Thu Mar 05 2015
+
   - Refine returns to allow methods to return arrays
   - Update pod so that version increments correctly
   - Added documentation about package mocking
