@@ -2,6 +2,8 @@ Revision history for {{$dist->name}}
 
 {{$NEXT}}
 
+0.04 Thu Mar 05 2015
+
 Refined "resetCalls" to allow only history of specific methods to be clear.
 Added tests for "resetCalls"
 
