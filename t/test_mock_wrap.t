@@ -97,6 +97,29 @@ describe "Test::Mock::Wrapper" => sub {
 	    is($test_object->foo, 'bar');
 	};
     };
+    
+    describe "Reset Mocks" => sub {
+	my($mock);
+	before sub {
+	    $mock = Test::Mock::Wrapper->new(UnderlyingObjectToTest->new(), type=>'mock');
+	    $mock->addMock('foo', returns=>'bar');
+	    $mock->addMock('baz', returns=>'bat');
+	};
+	it "clears all method mocks if called with no arguments" => sub {
+	    is($mock->getObject->foo, 'bar');
+	    is($mock->getObject->baz, 'bat');
+	    $mock->resetMocks;
+	    is($mock->getObject->baz, undef);
+	    is($mock->getObject->foo, undef);
+	};
+	it "clears only specified method if provided" => sub {
+	    is($mock->getObject->baz, 'bat');
+	    is($mock->getObject->foo, 'bar');
+	    $mock->resetMocks('foo');
+	    is($mock->getObject->foo, undef);
+	    is($mock->getObject->baz, 'bat');
+	};
+    };
 
     describe "Call verification" => sub {
 	my($mock);
@@ -161,7 +184,27 @@ describe "Test::Mock::Wrapper" => sub {
 	    my $verifier = $mock->verify('foo');
 	    $verifier->with([{name=>'dave', status=>ignore()}])->exactly(2);
 	    $verifier->with([{name=>'juli', status=>ignore()}])->once;
-	}
+	};
+	describe "resetCalls" => sub {
+	    before "each" => sub {
+		$mock->addMock('foo');
+		$mock->addMock('baz');
+		$mock->getObject->foo('bar');
+		$mock->getObject->baz('bat');
+		$mock->verify('foo')->at_least(1);
+		$mock->verify('baz')->at_least(1);
+	    };
+	    it "resets history for all calls if called without arguments" => sub {
+		$mock->resetCalls;
+		$mock->verify('foo')->never;
+		$mock->verify('baz')->never;
+	    };
+	    it "resets history for only specified method if provided" => sub {
+		$mock->resetCalls('foo');
+		$mock->verify('foo')->never;
+		$mock->verify('baz')->at_least(1);
+	    };
+	};
     };
 };
 

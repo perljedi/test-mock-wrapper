@@ -138,9 +138,39 @@ sub getObject {
     return $self->{__mocked};
 }
 
+=item $wrapper->resetCalls([$method])
+
+This method clears out the memory of calls that have been made, which is usefull if using the same mock wrapper instance
+multiple tests. When called without arguments, all call history is cleared.  With the optional $method argument, only
+history for that method is called.
+
+=cut
+
 sub resetCalls {
-    my $self = shift;
-    $self->{__calls} = {};
+    my($self, $method) = @_;
+    if (defined($method) && length($method)) {
+	$self->{__calls}{$method} = [];
+    }else{
+	$self->{__calls} = {};
+    }
+    return 1;
+}
+
+=item $wrapper->resetMocks([$method])
+
+This method clears out all previously provided mocked methods. Without arguments, all mocks are cleared. With the optional
+$method argument, only mocks for that method are cleared.
+
+=cut
+
+sub resetMocks {
+    my($self, $method) = @_;
+    if (defined($method) && length($method)) {
+	delete $self->{__mocks}{$method};
+    }else{
+	$self->{__mocks} = {};
+    }
+    return 1;
 }
 
 sub _call {
