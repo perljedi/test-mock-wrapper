@@ -4,10 +4,12 @@ use warnings;
 use Test::Spec;
 use Test::More;
 use Test::Deep;
+use Test::Fatal qw(lives_ok);
 use lib qw(..);
 use Test::Mock::Wrapper;
 use base qw(Test::Spec);
 use Scalar::Util qw(weaken isweak);
+use metaclass;
 
 describe "Test::Mock::Wrapper" => sub {
     describe "basic functionality" => sub {
@@ -96,6 +98,12 @@ describe "Test::Mock::Wrapper" => sub {
 	    isa_ok($test_object, 'UnderlyingObjectToTest');
 	    is($test_object->foo, 'bar');
 	};
+	it "can handle 'immutable' packages" => sub {
+	    lives_ok {
+		Immutable::ExamplePackage->meta->make_immutable;
+		my $immutableWrapper = Test::Mock::Wrapper->new('Immutable::ExamplePackage');
+	    };
+	}
     };
     
     describe "Reset Mocks" => sub {
@@ -222,5 +230,12 @@ sub foo {
 
 sub baz {
     return 'bat';
+}
+
+package Immutable::ExamplePackage;
+use metaclass;
+
+sub ga {
+    return 'farv';
 }
 

@@ -120,6 +120,9 @@ sub new {
     if (! ref($object)) {
 	eval "package $object; use metaclass;";  
 	my $metaclass = $object->meta;
+
+	$metaclass->make_mutable if($metaclass->is_immutable);
+
 	$controll->{__metaclass} = $metaclass;
 	foreach my $method_name ($metaclass->get_method_list){
 	    push @{ $controll->{__wrapped_symbols} }, {name => $method_name, symbol => $metaclass->find_method_by_name($method_name)};
@@ -140,9 +143,11 @@ sub DESTROY {
     my $controll = shift;
     no strict qw(refs);
     no warnings 'redefine', 'prototype';
-    foreach my $sym (@{ $controll->{__wrapped_symbols} }){
-	if ($sym->{symbol}) {
-	    $controll->{__metaclass}->add_method($sym->{name}, $sym->{symbol}->body);
+    if ($controll->{__metaclass}) {
+	foreach my $sym (@{ $controll->{__wrapped_symbols} }){
+	    if ($sym->{symbol}) {
+		$controll->{__metaclass}->add_method($sym->{name}, $sym->{symbol}->body);
+	    }
 	}
     }
 }
@@ -406,7 +411,6 @@ sub AUTOLOAD {
 	}
 	else {
 	    my $pack = ref($self->{__object});
-	    print STDERR "Failing from wrapper autoload\n";
 	    croak qq{Can't locate object method "$method" via package "$pack"};
 	}
     }
