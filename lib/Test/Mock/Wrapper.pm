@@ -126,9 +126,10 @@ sub new {
 	$controll->{__metaclass} = $metaclass;
 	foreach my $method_name ($metaclass->get_method_list){
 	    push @{ $controll->{__wrapped_symbols} }, {name => $method_name, symbol => $metaclass->find_method_by_name($method_name)};
+	    $controll->{__symbols}{$method_name} = $metaclass->find_method_by_name($method_name)->body;
 	    if ($method_name eq 'new') {
 		my $method = $metaclass->remove_method($method_name);
-		$metaclass->add_method($method_name, sub{ return $controll->getObject;});
+		$metaclass->add_method($method_name, sub{ return bless {}, $object; });
 		
 	    }else{
 		my $method = $metaclass->remove_method($method_name);
@@ -230,7 +231,13 @@ sub _call {
     else{
 	# We do not have a default, and our mock type is not stub or mock, try to call underlying object.
 	unshift @_, $self->{__object}; 
-	goto &{ ref($self->{__object}).'::'.$method };
+	if ($self->{__metaclass}) {
+	    # Pacakge is mocked with method wrappers, must call the original symbol metaclass
+	    goto &{ $self->{__symbols}{$method} };
+	}else{
+	    goto &{ ref($self->{__object}).'::'.$method };
+	}
+	
     }
 }
 

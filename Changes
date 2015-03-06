@@ -2,6 +2,8 @@ Revision history for {{$dist->name}}
 
 {{$NEXT}}
 
+  - Updated package mocking stucture to allow mocks to pass moose type constraints when used in moose objects.
+
 0.06 Thu Mar 05 2015
 
   - Added support for immutable packages, and test for same.
