@@ -2,6 +2,8 @@ Revision history for {{$dist->name}}
 
 {{$NEXT}}
 
+0.06.1 Fri Mar 06 2015
+
   - Updated package mocking stucture to allow mocks to pass moose type constraints when used in moose objects.
 
 0.06 Thu Mar 05 2015
