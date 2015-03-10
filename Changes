@@ -2,6 +2,8 @@ Revision history for {{$dist->name}}
 
 {{$NEXT}}
 
+0.08 Tue Mar 10 2015
+
   - Added import method to allow for compile time package mocking
 
 0.07 Tue Mar 10 2015

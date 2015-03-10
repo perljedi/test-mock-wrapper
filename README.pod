@@ -40,7 +40,26 @@ version 0.08
     $wrapper->DESTROY;
     
     my $actualFoo = Foo->new;
+
+=head2 Mock Exported functions
+
+    use Test::Mock::Wrapper qw(Foo);
+    use Foo qw(bar);
     
+    is(&bar, undef);   # Mocked version of bar, returns undef by default.
+    
+    my $wrapper = Test::Mock::Wrapper->new('Foo');
+    
+    $wrapper->addMock('bar', with=>['baz'], returns=>'snarf');
+    
+    print &bar('baz'); # prints "snarf"
+    
+    $wrapper->verify('bar')->exactly(2); # $wrapper also saw the first &bar (even though it was before you instantiated it)
+    
+    $wrapper->DESTROY;
+    
+    print &bar('baz');  # Back to the original Foo::bar (whatever that did)
+
     
 =head1 DESCRIPTION
 
