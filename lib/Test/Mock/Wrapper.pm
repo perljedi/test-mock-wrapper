@@ -129,7 +129,13 @@ sub new {
 	    $controll->{__symbols}{$method_name} = $metaclass->find_method_by_name($method_name)->body;
 	    if ($method_name eq 'new') {
 		my $method = $metaclass->remove_method($method_name);
-		$metaclass->add_method($method_name, sub{ return bless {}, $object; });
+		$metaclass->add_method($method_name, sub{
+		    my $copy = $controll->{__options}{recordType} eq 'copy' ? [@_] : clone(@_);
+		    push @{ $controll->{__calls}{new} }, $copy;
+		    my $obj = bless {}, $object;
+		    push @{ $controll->{__instances} }, $obj;
+		    return $obj;
+		});
 		
 	    }else{
 		my $method = $metaclass->remove_method($method_name);
@@ -144,6 +150,7 @@ sub DESTROY {
     my $controll = shift;
     no strict qw(refs);
     no warnings 'redefine', 'prototype';
+    $controll->resetAll;
     if ($controll->{__metaclass}) {
 	foreach my $sym (@{ $controll->{__wrapped_symbols} }){
 	    if ($sym->{symbol}) {
@@ -164,41 +171,6 @@ baked in.
 sub getObject {
     my $self = shift;
     return $self->{__mocked};
-}
-
-=item $wrapper->resetCalls([$method])
-
-This method clears out the memory of calls that have been made, which is usefull if using the same mock wrapper instance
-multiple tests. When called without arguments, all call history is cleared.  With the optional $method argument, only
-history for that method is called.
-
-=cut
-
-sub resetCalls {
-    my($self, $method) = @_;
-    if (defined($method) && length($method)) {
-	$self->{__calls}{$method} = [];
-    }else{
-	$self->{__calls} = {};
-    }
-    return 1;
-}
-
-=item $wrapper->resetMocks([$method])
-
-This method clears out all previously provided mocked methods. Without arguments, all mocks are cleared. With the optional
-$method argument, only mocks for that method are cleared.
-
-=cut
-
-sub resetMocks {
-    my($self, $method) = @_;
-    if (defined($method) && length($method)) {
-	delete $self->{__mocks}{$method};
-    }else{
-	$self->{__mocks} = {};
-    }
-    return 1;
 }
 
 sub _call {
@@ -388,6 +360,60 @@ sub verify {
     return Test::Mock::Wrapper::Verify->new($method, $self->{__calls}{$method});    
 }
 
+
+=item $wrapper->resetCalls([$method])
+
+This method clears out the memory of calls that have been made, which is usefull if using the same mock wrapper instance
+multiple tests. When called without arguments, all call history is cleared.  With the optional $method argument, only
+history for that method is called.
+
+=cut
+
+sub resetCalls {
+    my($self, $method) = @_;
+    if (defined($method) && length($method)) {
+	$self->{__calls}{$method} = [];
+    }else{
+	$self->{__calls} = {};
+    }
+    return 1;
+}
+
+=item $wrapper->resetMocks([$method])
+
+This method clears out all previously provided mocked methods. Without arguments, all mocks are cleared. With the optional
+$method argument, only mocks for that method are cleared.
+
+=cut
+
+sub resetMocks {
+    my($self, $method) = @_;
+    if (defined($method) && length($method)) {
+	delete $self->{__mocks}{$method};
+    }else{
+	$self->{__mocks} = {};
+    }
+    return 1;
+}
+
+=item $wrapper->resetAll
+
+This method clears out both mocks and calls.  Will also rebless any mocked instances created from a mocked package
+(Prevents intermitent failures during global destruction).
+
+=cut
+
+sub resetAll {
+    my $self = shift;
+    if ($self->{__metaclass}) {
+        foreach my $inst (@{ $self->{__instances} }){
+            bless $inst, 'Test::Mock::Wrapped' if($inst);
+        }
+    }
+    $self->{__instances} = [];
+    $self->{__calls}     = {};
+    $self->{__mocks}     = {};
+}
 
 package Test::Mock::Wrapped;
 use Carp;

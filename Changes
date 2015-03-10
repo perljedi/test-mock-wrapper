@@ -2,6 +2,11 @@ Revision history for {{$dist->name}}
 
 {{$NEXT}}
 
+  - Allow mocked pacakges to capture calls to new.
+  - Added "resetAll" method.
+  - Update destrcutor to prevent internmitent failures in globabl destruction on objects created from mocked pacakge
+    
+
 0.06.1 Fri Mar 06 2015
 
   - Updated package mocking stucture to allow mocks to pass moose type constraints when used in moose objects.
