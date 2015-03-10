@@ -7,7 +7,18 @@ use Test::Deep;
 use Test::More;
 use Clone qw(clone);
 use Scalar::Util qw(weaken isweak);
+use Module::Runtime qw(use_module);
 require Test::Mock::Wrapper::Verify;
+use vars qw(%GLOBAL_MOCKS);
+use lib qw(t/);
+
+sub import {
+    my($proto, @args) = @_;
+    foreach my $package (@args){
+	use_module $package;
+	$GLOBAL_MOCKS{$package} = Test::Mock::Wrapper->new($package);
+    }
+}
 
 # ABSTRACT: Flexible and prowerful class and object mocking library for perl
 
@@ -47,7 +58,26 @@ Test::Mock::Wrapper
     $wrapper->DESTROY;
     
     my $actualFoo = Foo->new;
+
+=head2 Mock Exported functions
+
+    use Test::Mock::Wrapper qw(Foo);
+    use Foo qw(bar);
     
+    is(&bar, undef);   # Mocked version of bar, returns undef by default.
+    
+    my $wrapper = Test::Mock::Wrapper->new('Foo');
+    
+    $wrapper->addMock('bar', with=>['baz'], returns=>'snarf');
+    
+    print &bar('baz'); # prints "snarf"
+    
+    $wrapper->verify('bar')->exactly(2); # $wrapper also saw the first &bar (even though it was before you instantiated it)
+    
+    $wrapper->DESTROY;
+    
+    print &bar('baz');  # Back to the original Foo::bar (whatever that did)
+
     
 =head1 DESCRIPTION
 
@@ -118,12 +148,17 @@ sub new {
     my $controll = bless({__object=>$object, __mocks=>{}, __calls=>{}, __options=>\%options}, $class);
     $controll->{__mocked} = Test::Mock::Wrapped->new($controll, $object);
     if (! ref($object)) {
+	if (exists $GLOBAL_MOCKS{$object}) {
+	    return $GLOBAL_MOCKS{$object};
+	}
+	
 	eval "package $object; use metaclass;";  
 	my $metaclass = $object->meta;
 
 	$metaclass->make_mutable if($metaclass->is_immutable);
 
 	$controll->{__metaclass} = $metaclass;
+	
 	foreach my $method_name ($metaclass->get_method_list){
 	    push @{ $controll->{__wrapped_symbols} }, {name => $method_name, symbol => $metaclass->find_method_by_name($method_name)};
 	    $controll->{__symbols}{$method_name} = $metaclass->find_method_by_name($method_name)->body;
@@ -146,7 +181,7 @@ sub new {
     return $controll;
 }
 
-sub DESTROY {
+sub stop_mocking {
     my $controll = shift;
     no strict qw(refs);
     no warnings 'redefine', 'prototype';
@@ -158,6 +193,11 @@ sub DESTROY {
 	    }
 	}
     }
+    $controll->{__options}{type} = 'wrap';
+}
+
+sub DESTROY {
+    shift->stop_mocking;
 }
 
 =item $wrapper->getObject

@@ -2,6 +2,8 @@ Revision history for {{$dist->name}}
 
 {{$NEXT}}
 
+  - Added import method to allow for compile time package mocking
+
 0.07 Tue Mar 10 2015
 
   - Allow mocked pacakges to capture calls to new.
