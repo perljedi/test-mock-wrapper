@@ -351,8 +351,6 @@ This call returns a Test::Mock::Wrapper::Verify object, which can be used to exa
 specified method thus far.  These objects are intended to be used to simplify testing, and methods called on the it
 are I<chainable> to lend to more readable tests.
 
-=back
-
 =cut
 
 sub verify {
@@ -400,6 +398,8 @@ sub resetMocks {
 
 This method clears out both mocks and calls.  Will also rebless any mocked instances created from a mocked package
 (Prevents intermitent failures during global destruction).
+
+=back
 
 =cut
 
