@@ -2,6 +2,8 @@ Revision history for {{$dist->name}}
 
 {{$NEXT}}
 
+0.07 Tue Mar 10 2015
+
   - Allow mocked pacakges to capture calls to new.
   - Added "resetAll" method.
   - Update destrcutor to prevent internmitent failures in globabl destruction on objects created from mocked pacakge
