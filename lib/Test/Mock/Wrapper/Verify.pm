@@ -1,5 +1,7 @@
 package Test::Mock::Wrapper::Verify;
 
+use strict;
+use warnings;
 use Test::Deep;
 use Test::More;
 use Clone qw(clone);
