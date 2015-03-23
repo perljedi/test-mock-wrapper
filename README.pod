@@ -6,7 +6,7 @@ Test::Mock::Wrapper
 
 =head1 VERSION
 
-version 0.09
+version 0.10
 
 =head1 SYNOPSIS
 
@@ -18,7 +18,10 @@ version 0.09
     my $foo = Foo->new;
     my $wrapper = Test::Mock::Wrapper->new($foo);
     
-    $wrapper->addMock('bar', with=>['baz'], returns=>'snarf');
+    $wrapper->addMock('bar')->with('baz')->returns('snarf');
+    # Old api, depricated but still supported
+    # $wrapper->addMock('bar', with=>['baz'], returns=>'snarf');
+    # #######################################
     
     &callBar($wrapper->getObject);
     
@@ -31,7 +34,7 @@ version 0.09
     
     my $wrapper = Test::Mock::Wrapper->new('Foo');
     
-    $wrapper->addMock('bar', with=>['baz'], returns=>'snarf');
+    $wrapper->addMock('bar')->with('baz')->returns('snarf');
     
     &callBar(Foo->new);
     
@@ -50,7 +53,7 @@ version 0.09
     
     my $wrapper = Test::Mock::Wrapper->new('Foo');
     
-    $wrapper->addMock('bar', with=>['baz'], returns=>'snarf');
+    $wrapper->addMock('bar')->with('baz')->returns('snarf');
     
     print &bar('baz'); # prints "snarf"
     
