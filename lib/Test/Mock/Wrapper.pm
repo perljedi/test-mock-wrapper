@@ -36,7 +36,10 @@ Test::Mock::Wrapper
     my $foo = Foo->new;
     my $wrapper = Test::Mock::Wrapper->new($foo);
     
-    $wrapper->addMock('bar', with=>['baz'], returns=>'snarf');
+    $wrapper->addMock('bar')->with('baz')->returns('snarf');
+    # Old api, depricated but still supported
+    # $wrapper->addMock('bar', with=>['baz'], returns=>'snarf');
+    # #######################################
     
     &callBar($wrapper->getObject);
     
@@ -49,7 +52,7 @@ Test::Mock::Wrapper
     
     my $wrapper = Test::Mock::Wrapper->new('Foo');
     
-    $wrapper->addMock('bar', with=>['baz'], returns=>'snarf');
+    $wrapper->addMock('bar')->with('baz')->returns('snarf');
     
     &callBar(Foo->new);
     
@@ -68,7 +71,7 @@ Test::Mock::Wrapper
     
     my $wrapper = Test::Mock::Wrapper->new('Foo');
     
-    $wrapper->addMock('bar', with=>['baz'], returns=>'snarf');
+    $wrapper->addMock('bar')->with('baz')->returns('snarf');
     
     print &bar('baz'); # prints "snarf"
     
@@ -219,24 +222,15 @@ sub _call {
     my $copy = $self->{__options}{recordType} eq 'copy' ? [@_] : clone(@_);
     push @{ $self->{__calls}{$method} }, $copy;
     
-    # Check to see if we have an argument specific return value
-    if (exists $self->{__mocks}{$method}{with}) {
-	my $return_offset = 0;
-	foreach my $test_set (@{ $self->{__mocks}{$method}{with} }){
-	    if(eq_deeply(\@_, $test_set)){
-		return ref $self->{__mocks}{$method}{conditional_return}[$return_offset] eq 'ARRAY' ? @{$self->{__mocks}{$method}{conditional_return}[$return_offset]} : $self->{__mocks}{$method}{conditional_return}[$return_offset];
-	    }
-	    $return_offset++;
+    if ($self->{__mocks}{$method}) {
+	my $mock = $self->{__mocks}{$method}->hasMock(@_);
+	if ($mock) {
+	    return $mock->_fetchReturn(@_);
 	}
+	
     }
     
-    
-    # If we've gotten here, we did not find an argument specific return
-    if(exists $self->{__mocks}{$method}{returns}){
-	# I we have a default, use it
-	return ref $self->{__mocks}{$method}{returns} eq 'ARRAY' ? @{ $self->{__mocks}{$method}{returns} } : $self->{__mocks}{$method}{returns}; 
-    }
-    elsif($self->{__options}{type} ne 'wrap'){
+    if($self->{__options}{type} ne 'wrap'){
 	# No default, type equals stub or mock, return undef.
 	return undef;
     }
@@ -302,26 +296,8 @@ For example:
 sub addMock {
     my $self = shift;
     my($method, %options) = @_;
-    if (exists $self->{__mocks}{$method}) {
-	if ($options{with}) {
-	    $self->{__mocks}{$method}{conditional_return} ||= [];
-	    $self->{__mocks}{$method}{with}               ||= [];
-	    push @{ $self->{__mocks}{$method}{conditional_return} }, $options{returns};
-	    push @{ $self->{__mocks}{$method}{with} }, $options{with};
-	}
-	else{
-	    $self->{__mocks}{$method}{returns} = $options{returns};
-	}
-    }else{
-	if ($options{with}) {
-	    $self->{__mocks}{$method} = {};
-	    $self->{__mocks}{$method}{conditional_return} = [$options{returns}];
-	    $self->{__mocks}{$method}{with}               = [$options{with}];
-	}
-	else{
-	    $self->{__mocks}{$method} = \%options;	    
-	}
-    }
+    $self->{__mocks}{$method} ||= Test::Mock::Wrapper::Method->new();
+    return $self->{__mocks}{$method}->addMock(%options);
 }
 
 
@@ -347,25 +323,10 @@ sub isMocked {
 	return $self->{__object}->can($method);
     }
     else {
-	if ($self->{__mocks}{$method}) {
-	    if (exists $self->{__mocks}{$method}{with}) {
-		foreach my $test_set (@{ $self->{__mocks}{$method}{with} }){
-		    if(eq_deeply(\@args, $test_set)){
-			return 1;
-		    }
-		}
-		if ($self->{__mocks}{$method}{returns}) {
-		    return 1;
-		}
-		
-		return;
-	    }
-	    else {
-		return 1;
-	    }
-	}
-	else {
-	    return;
+	if ($self->{__mocks}{$method} && $self->{__mocks}{$method}->hasMock(@args)) {
+	    return 1;
+	} else {
+	    return undef;
 	}
     }
 }
@@ -455,7 +416,97 @@ sub resetAll {
     $self->{__mocks}     = {};
 }
 
+
+package Test::Mock::Wrapper::Method;
+use Test::Deep;
+use strict;
+use warnings;
+
+sub new {
+    my($proto, %args) = @_;
+    $proto = ref($proto) || $proto;
+    return bless({_mocks=>[]}, $proto)
+}
+
+sub addMock {
+    my($self, %args) = @_;
+    my $mock = Test::Mock::Wrapper::Method::Mock->new();
+    $mock->with(@{$args{with}}) if(exists $args{with});
+    $mock->returns($args{returns}) if(exists $args{returns});
+    push @{ $self->{_mocks} }, $mock;
+    return $mock;
+}
+
+sub hasMock {
+    my($self, @args) = @_;
+    foreach my $mock (@{$self->{_mocks}}){
+	if ($mock->_matches(@args)) {
+	    return $mock;
+	}
+    }
+    return undef;
+}
+
+package Test::Mock::Wrapper::Method::Mock;
+use Test::Deep;
+use strict;
+use warnings;
+
+sub new {
+    my($proto, %args) = @_;
+    $proto = ref($proto) || $proto;
+    my $self = {};
+    if ($args{with}) {
+	$self->{_condition} = $args{with};
+    }
+    if ($args{returns}) {
+	$self->{_return} = $args{returns};
+    }
+    
+    return bless($self, $proto)
+}
+
+sub with {
+    my($self, @args) = @_;
+    $self->{_condition} = \@args;
+    return $self;
+}
+
+sub returns {
+    my($self, @value) = @_;
+    $self->{_return} = scalar(@value) > 1 ? \@value : $value[0];
+}
+
+sub _isDefault {
+    my($self) = @_;
+    return exists($self->{_condition});
+}
+
+sub _matches {
+    my $self = shift;
+    my(@args) = @_;
+    if (exists $self->{_condition}) {
+	return eq_deeply(\@args, $self->{_condition});
+    }else{
+	return 1;
+    }
+}
+
+sub _fetchReturn {
+    my($self, @args) = @_;
+    if (ref($self->{_return}) eq 'ARRAY') {
+	return @{ $self->{_return} };
+    }elsif(ref($self->{_return}) eq 'CODE'){
+	return $self->{_return}->(@args);
+    }else{
+	return $self->{_return};	
+    }
+}
+
+
 package Test::Mock::Wrapped;
+use strict;
+use warnings;
 use Carp;
 use Scalar::Util qw(weaken isweak);
 use vars qw(@ISA);

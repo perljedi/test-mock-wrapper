@@ -10,6 +10,7 @@ use Test::Mock::Wrapper;
 use base qw(Test::Spec);
 use Scalar::Util qw(weaken isweak);
 use metaclass;
+use Data::Dumper;
 
 describe "Test::Mock::Wrapper" => sub {
     describe "basic functionality" => sub {
@@ -19,7 +20,8 @@ describe "Test::Mock::Wrapper" => sub {
 	};
 	it "uses mocked response for basic mocked method" => sub {
 	    $mock->addMock('foo', returns=>'bam');
-	    is($mock->getObject->foo(), 'bam');
+	    my($res) = $mock->getObject->foo();
+	    is($res, 'bam');
 	};
 	it "returns a conditional return value if the with condition is met" => sub {
 	    $mock->addMock('foo', with=>['man'], returns=>'choo');

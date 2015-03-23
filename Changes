@@ -2,6 +2,8 @@ Revision history for {{$dist->name}}
 
 {{$NEXT}}
 
+  - Revamped addMock flow
+
 0.09 Wed Mar 11 2015
 
   - Added use strict and use warnings to verify sub packages
