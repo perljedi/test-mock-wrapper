@@ -340,7 +340,7 @@ This method wil return an array of the arguments passed to each call to the spec
 sub getCallsTo {
     my $self = shift;
     my $method = shift;
-    if (exists $self->{__mocks}{$method}) {
+    if (exists $self->{__calls}{$method}) {
 	return $self->{__calls}{$method} || [];
     }
     return;
