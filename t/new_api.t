@@ -40,6 +40,20 @@ describe "Test::Mock::Wrapper new mocking api" => sub {
 	$mocker->addMock('foo')->with('bat')->returns(sub{ return $_[0] });
 	is($mocker->getObject->foo('bat'), 'bat');
     };
+    it "only uses default if no conditions match" => sub{
+	my($mocker) = Test::Mock::Wrapper->new(UnderlyingObjectToTest->new);
+	$mocker->addMock('foo')->with('bat')->returns(sub{ return $_[0] });
+	$mocker->addMock('foo')->returns('default');
+	is($mocker->getObject->foo('bat'), 'bat');
+	is($mocker->getObject->foo('ball'), 'default');
+    };
+    it "only uses default if no conditions match (regardless of order specified)" => sub{
+	my($mocker) = Test::Mock::Wrapper->new(UnderlyingObjectToTest->new);
+	$mocker->addMock('foo')->returns('default');
+	$mocker->addMock('foo')->with('bat')->returns(sub{ return $_[0] });
+	is($mocker->getObject->foo('bat'), 'bat');
+	is($mocker->getObject->foo('ball'), 'default');
+    };
 };
 
 runtests;

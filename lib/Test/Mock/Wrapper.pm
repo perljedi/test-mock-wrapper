@@ -170,7 +170,7 @@ sub new {
 		$metaclass->add_method($method_name, sub{
 		    my $copy = $controll->{__options}{recordType} eq 'copy' ? [@_] : clone(@_);
 		    push @{ $controll->{__calls}{new} }, $copy;
-		    my $obj = bless {}, $object;
+		    my $obj = bless {_inst => scalar(@{ $controll->{__calls}{new} })}, $object;
 		    push @{ $controll->{__instances} }, $obj;
 		    return $obj;
 		});
@@ -439,12 +439,17 @@ sub addMock {
 
 sub hasMock {
     my($self, @args) = @_;
+    my $def = undef;
     foreach my $mock (@{$self->{_mocks}}){
 	if ($mock->_matches(@args)) {
-	    return $mock;
+	    if ($mock->_isDefault) {
+		$def = $mock;
+	    }else{
+		return $mock;
+	    }
 	}
     }
-    return undef;
+    return $def;
 }
 
 package Test::Mock::Wrapper::Method::Mock;
@@ -479,7 +484,7 @@ sub returns {
 
 sub _isDefault {
     my($self) = @_;
-    return exists($self->{_condition});
+    return ! exists($self->{_condition});
 }
 
 sub _matches {

@@ -105,7 +105,16 @@ describe "Test::Mock::Wrapper" => sub {
 		Immutable::ExamplePackage->meta->make_immutable;
 		my $immutableWrapper = Test::Mock::Wrapper->new('Immutable::ExamplePackage');
 	    };
-	}
+	};
+	it "can use instance of an oject to limit scope of mocked response" => sub {
+	    my $mocker = Test::Mock::Wrapper->new('UnderlyingObjectToTest');
+	    my $obj1 = UnderlyingObjectToTest->new();
+	    my $obj2 = UnderlyingObjectToTest->new();
+	    $mocker->addMock('foo', with=>[$obj1], returns=>'hi');
+	    $mocker->addMock('foo', with=>[$obj2], returns=>'bye');
+	    is($obj1->foo, 'hi');
+	    is($obj2->foo, 'bye');
+	};
     };
     
     describe "Reset Mocks" => sub {

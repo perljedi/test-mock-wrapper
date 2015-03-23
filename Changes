@@ -2,6 +2,13 @@ Revision history for {{$dist->name}}
 
 {{$NEXT}}
 
+  - Correct bug to method for finding correct version of a mock to use
+    when both conditional and default mocks specified.
+
+  - Allow use of object instance to limit conditional mocks
+
+  - Tests to exercise bugs found
+
 0.11 Mon Mar 23 2015
 
   - Fixed bug to getCallsTo for methods not explicitly mocked.
