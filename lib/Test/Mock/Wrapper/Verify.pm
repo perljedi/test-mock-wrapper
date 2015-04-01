@@ -55,8 +55,8 @@ supplied matcher. See L<Test::Deep> for information about matcher syntax.
 
 sub with {
     my $self = shift;
-    my $matcher = shift;
-    my (@__calls) = grep({eq_deeply($_, $matcher)} @{ $self->{__calls} });
+    my(@matchers) = @_;
+    my (@__calls) = grep({eq_deeply($_, \@matchers)} @{ $self->{__calls} });
     return bless({__calls=>\@__calls, method=>$self->{method}}, ref($self));
 }
 

@@ -2,6 +2,8 @@ Revision history for {{$dist->name}}
 
 {{$NEXT}}
 
+  - Correcting a bug in the "with" modifier in Verify.pm
+
 0.12 Mon Mar 23 2015
 
   - Correct bug to method for finding correct version of a mock to use
