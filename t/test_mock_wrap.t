@@ -24,7 +24,7 @@ describe "Test::Mock::Wrapper" => sub {
 	    is($res, 'bam');
 	};
 	it "returns a conditional return value if the with condition is met" => sub {
-	    $mock->addMock('foo', with=>['man'], returns=>'choo');
+	    $mock->addMock('foo', with=>[ignore, 'man'], returns=>'choo');
 	    $mock->addMock('foo', returns=>'bam');
 	    is($mock->getObject->foo('man'), 'choo');
 	};
@@ -34,8 +34,8 @@ describe "Test::Mock::Wrapper" => sub {
 	    is($mock->getObject->foo('who'), 'bam');
 	};
 	it "returns first provided return value if multiple conditions are met" => sub {
-	    $mock->addMock('foo', with=>['man', ignore()], returns=>'choo');
-	    $mock->addMock('foo', with=>[ignore(), 'bat'], returns=>'foo');
+	    $mock->addMock('foo', with=>[supersetof('man')], returns=>'choo');
+	    $mock->addMock('foo', with=>[supersetof('bat')], returns=>'foo');
 	    is($mock->getObject->foo('man', 'bat'), 'choo');
 	};
     };
@@ -110,8 +110,8 @@ describe "Test::Mock::Wrapper" => sub {
 	    my $mocker = Test::Mock::Wrapper->new('UnderlyingObjectToTest');
 	    my $obj1 = UnderlyingObjectToTest->new();
 	    my $obj2 = UnderlyingObjectToTest->new();
-	    $mocker->addMock('foo', with=>[$obj1], returns=>'hi');
-	    $mocker->addMock('foo', with=>[$obj2], returns=>'bye');
+	    $mocker->addMock('foo', with=>[supersetof($obj1)], returns=>'hi');
+	    $mocker->addMock('foo', with=>[supersetof($obj2)], returns=>'bye');
 	    is($obj1->foo, 'hi');
 	    is($obj2->foo, 'bye');
 	};
@@ -190,10 +190,10 @@ describe "Test::Mock::Wrapper" => sub {
 	    $mock->getObject->foo({name=>'juli', status=>'cute'});
 	    $mock->getObject->foo({name=>'tom', status=>'smart'});
 	    $mock->getObject->foo({name=>'dan', status=>'lazy'});
-	    $mock->verify('foo')->with([{name=>'dave', status=>ignore()}])->exactly(2);
-	    $mock->verify('foo')->with([{name=>'dave', status=>ignore()}])->at_least(1)->with([{name=>ignore(), status=>'cool'}])->once;
+	    $mock->verify('foo')->with(supersetof(superhashof({name=>'dave'})))->exactly(2);
+	    $mock->verify('foo')->with(supersetof(superhashof({name=>'dave'})))->at_least(1)->with(supersetof(superhashof({status=>'cool'})))->once;
 	};
-	it "retains call list at each distinct state" => sub {
+	xit "retains call list at each distinct state" => sub {
 	    $mock->addMock('foo');
 	    $mock->getObject->foo({name=>'dave', status=>'cool'});
 	    $mock->getObject->foo({name=>'dave', status=>'smart'});
@@ -201,10 +201,10 @@ describe "Test::Mock::Wrapper" => sub {
 	    $mock->getObject->foo({name=>'tom', status=>'smart'});
 	    $mock->getObject->foo({name=>'dan', status=>'lazy'});
 	    my $verifier = $mock->verify('foo');
-	    $verifier->with([{name=>'dave', status=>ignore()}])->exactly(2);
-	    $verifier->with([{name=>'juli', status=>ignore()}])->once;
+	    $verifier->with(supersetof({name=>'dave', status=>ignore()}))->exactly(2);
+	    $verifier->with(supersetof({name=>'juli', status=>ignore()}))->once;
 	};
-	describe "resetCalls" => sub {
+	xdescribe "resetCalls" => sub {
 	    before "each" => sub {
 		$mock->addMock('foo');
 		$mock->addMock('baz');

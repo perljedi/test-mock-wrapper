@@ -1,5 +1,5 @@
 package Test::Mock::Wrapper;
-
+$Test::Mock::Wrapper::VERSION = '0.13';
 use strict;
 use warnings;
 use base qw(Exporter);
@@ -25,6 +25,10 @@ sub import {
 =head1 NAME
 
 Test::Mock::Wrapper
+
+=head1 VERSION
+
+version 0.13
 
 =head1 SYNOPSIS
 
@@ -213,7 +217,7 @@ baked in.
 
 sub getObject {
     my $self = shift;
-    return $self->{__mocked};
+    return Test::Mock::Wrapped->new($self, $self->{__object});#$self->{__mocked};
 }
 
 sub _call {
@@ -418,6 +422,7 @@ sub resetAll {
 
 
 package Test::Mock::Wrapper::Method;
+$Test::Mock::Wrapper::Method::VERSION = '0.13';
 use Test::Deep;
 use strict;
 use warnings;
@@ -453,6 +458,7 @@ sub hasMock {
 }
 
 package Test::Mock::Wrapper::Method::Mock;
+$Test::Mock::Wrapper::Method::Mock::VERSION = '0.13';
 use Test::Deep;
 use strict;
 use warnings;
@@ -473,7 +479,14 @@ sub new {
 
 sub with {
     my($self, @args) = @_;
-    $self->{_condition} = \@args;
+    if (scalar(@args) > 1) {
+	$self->{_condition} = \@args;
+    }
+    else{
+	$self->{_condition} = shift @args;
+    }
+    
+    #$self->{_condition} = \@args;
     return $self;
 }
 
@@ -490,6 +503,7 @@ sub _isDefault {
 sub _matches {
     my $self = shift;
     my(@args) = @_;
+    
     if (exists $self->{_condition}) {
 	return eq_deeply(\@args, $self->{_condition});
     }else{
@@ -510,6 +524,7 @@ sub _fetchReturn {
 
 
 package Test::Mock::Wrapped;
+$Test::Mock::Wrapped::VERSION = '0.13';
 use strict;
 use warnings;
 use Carp;
@@ -531,7 +546,7 @@ sub AUTOLOAD {
     $Test::Mock::Wrapped::AUTOLOAD=~m/::(\w+)$/;
     my $method = $1;
     if ($self->{__controller}->isMocked($method, @args)) {
-	return $self->{__controller}->_call($method, @args);
+	return $self->{__controller}->_call($method, $self, @args);
     }
     else {
 	if ($self->{__object}->can($method)) {
