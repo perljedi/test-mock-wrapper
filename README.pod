@@ -63,7 +63,6 @@ version 0.13
     
     print &bar('baz');  # Back to the original Foo::bar (whatever that did)
 
-    
 =head1 DESCRIPTION
 
 This is another module for mocking objects in perl.  It will wrap around an existing object, allowing you to mock any calls
@@ -120,6 +119,50 @@ mocked or not.
 By default arguments will be a simple copy of @_, use B<clone> to make a deep copy of all data passed in. If references are being
 passed in, the default will not trap the state of the object or reference at the time the method was called, though clone will.
 Naturally using clone will cause a larger memory foot print.
+
+=item wrap_superclass=>qr/REGEX/ (Package Only)
+
+*CAUTION*
+
+This is is a powerful, but potentially problematic feature. By providing wrap_superclass=>qr/REGEX/ the module will mock methods
+called on the wrapped package, even if they are inherited from parent classes.  This option only works when mocking an entire pacakge,
+and cannot work on a single mocked object. The big GOTCHA here happens if the provided REGEX is to broad. It will match as far up the
+heritance tree as perl will allow, including mocking methods in UNIVERSAL which can have adverse effects if not used wisely.
+
+When wrapping a superclass, this module should only mock superclass methods when they are invoked via an object blessed into the
+mocked class...  consider the following example:
+
+    package Pet;
+    
+    sub play {
+	return "fun";
+    }
+    
+    pacakage Dog;
+    use base qw(Pet);
+    
+    sub speak {
+	return "Bark";
+    }
+    
+    package Cat;
+    use base qw(Pet);
+    
+    sub speak {
+	return "Meow";
+    }
+    
+    package main;
+    use Test::Mock::Wrapper;
+    
+    my $mock = Test::Mock::Wrapper->new('Cat', wrap_supercalss=>qr/^Pet/);
+    $mock->addMock('play')->returns('Maybe later');
+    
+    my $cat = Cat->new;
+    my $dog = Dog->new;
+    
+    print $cat->play."\n";   # prints "Maybe Later\n";
+    print $dog->play."\n";   $ prints "Fun\n";
 
 =back
 

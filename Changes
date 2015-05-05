@@ -2,6 +2,8 @@ Revision history for {{$dist->name}}
 
 {{$NEXT}}
 
+0.14 Tue May 05 2015
+
   - Adding the ability to mock methods inherited from parent classes
 
 0.13 Tue May 05 2015
