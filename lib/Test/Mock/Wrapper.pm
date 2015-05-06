@@ -1,5 +1,4 @@
 package Test::Mock::Wrapper;
-$Test::Mock::Wrapper::VERSION = '0.13';
 use strict;
 use warnings;
 use base qw(Exporter);
@@ -25,10 +24,6 @@ sub import {
 =head1 NAME
 
 Test::Mock::Wrapper
-
-=head1 VERSION
-
-version 0.13
 
 =head1 SYNOPSIS
 
@@ -486,7 +481,6 @@ sub resetAll {
 
 
 package Test::Mock::Wrapper::Method;
-$Test::Mock::Wrapper::Method::VERSION = '0.13';
 use Test::Deep;
 use strict;
 use warnings;
@@ -522,7 +516,6 @@ sub hasMock {
 }
 
 package Test::Mock::Wrapper::Method::Mock;
-$Test::Mock::Wrapper::Method::Mock::VERSION = '0.13';
 use Test::Deep;
 use strict;
 use warnings;
@@ -588,7 +581,6 @@ sub _fetchReturn {
 
 
 package Test::Mock::Wrapped;
-$Test::Mock::Wrapped::VERSION = '0.13';
 use strict;
 use warnings;
 use Carp;

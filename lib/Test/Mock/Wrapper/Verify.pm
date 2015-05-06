@@ -1,5 +1,4 @@
 package Test::Mock::Wrapper::Verify;
-
 use strict;
 use warnings;
 use Test::Deep;
