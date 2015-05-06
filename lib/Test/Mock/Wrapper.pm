@@ -155,7 +155,7 @@ mocked class...  consider the following example:
 	return "fun";
     }
     
-    pacakage Dog;
+    package Dog;
     use base qw(Pet);
     
     sub speak {
