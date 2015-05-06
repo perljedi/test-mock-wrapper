@@ -2,6 +2,8 @@ Revision history for {{$dist->name}}
 
 {{$NEXT}}
 
+0.16 Wed May 06 2015
+
   - Fixed typo in documentation
 
 0.15 Wed May 06 2015
