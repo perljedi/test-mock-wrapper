@@ -1,4 +1,5 @@
 package Test::Mock::Wrapper;
+require 5.18.0;
 use strict;
 use warnings;
 use base qw(Exporter);
