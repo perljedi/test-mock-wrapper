@@ -113,16 +113,24 @@ Valid options:
 
 =over 2
 
-=item B<type>=>(B<mock>|B<stub>|B<wrap>): Type of mocking to use.
+=item B<type>=>(B<mock>|B<stub>|B<wrap>):
+
+Type of mocking to use.
 
 =over 3
 
-=item B<mock>:  All methods available on the underlying object will be available, and all will be mocked
+=item B<mock>:
 
-=item B<stub>:  Any method called on the mock object will be stubbed, even those which do not exist in the original
+All methods available on the underlying object will be available, and all will be mocked
+
+=item B<stub> (default when wrapping a class):
+
+Any method called on the mock object will be stubbed, even those which do not exist in the original
 object
 
-=item B<wrap> (default): Only methods which have been specifically set up with B<addMock> will be mocked
+=item B<wrap> (default when wrapping an object):
+
+Only methods which have been specifically set up with B<addMock> will be mocked
 all others will be passed through to the underlying object.
 
 =back
