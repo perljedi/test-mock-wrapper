@@ -16,7 +16,7 @@ describe "Test::Mock::Wrapper" => sub {
     describe "basic functionality" => sub {
 	my($mock);
 	before sub {
-	    $mock = Test::Mock::Wrapper->new(UnderlyingObjectToTest->new());  
+	    $mock = Test::Mock::Wrapper->new(UnderlyingObjectToTest->new());
 	};
 	it "uses mocked response for basic mocked method" => sub {
 	    $mock->addMock('foo', returns=>'bam');
@@ -42,7 +42,7 @@ describe "Test::Mock::Wrapper" => sub {
     describe "type=wrap" => sub {
 	my($mock);
 	before sub {
-	    $mock = Test::Mock::Wrapper->new(UnderlyingObjectToTest->new());  
+	    $mock = Test::Mock::Wrapper->new(UnderlyingObjectToTest->new());
 	};
 	it "calls the original object for non-mocked method" => sub {
 	    is($mock->getObject->baz, 'bat');
@@ -58,7 +58,7 @@ describe "Test::Mock::Wrapper" => sub {
     describe "type=stub" => sub {
 	my($mock);
 	before sub {
-	    $mock = Test::Mock::Wrapper->new(UnderlyingObjectToTest->new(), type=>'stub');  
+	    $mock = Test::Mock::Wrapper->new(UnderlyingObjectToTest->new(), type=>'stub');
 	};
 	it "returns undef for non mocked method" => sub {
 	    is($mock->getObject->baz, undef);
@@ -74,7 +74,7 @@ describe "Test::Mock::Wrapper" => sub {
     describe "type=mock" => sub {
 	my($mock);
 	before sub {
-	    $mock = Test::Mock::Wrapper->new(UnderlyingObjectToTest->new(), type=>'mock');  
+	    $mock = Test::Mock::Wrapper->new(UnderlyingObjectToTest->new(), type=>'mock');
 	};
 	it "returns undef for non mocked method" => sub {
 	    is($mock->getObject->baz, undef);
@@ -116,7 +116,7 @@ describe "Test::Mock::Wrapper" => sub {
 	    is($obj2->foo, 'bye');
 	};
     };
-    
+
     describe "Reset Mocks" => sub {
 	my($mock);
 	before sub {
@@ -143,7 +143,7 @@ describe "Test::Mock::Wrapper" => sub {
     describe "Call verification" => sub {
 	my($mock);
 	before sub {
-	    $mock = Test::Mock::Wrapper->new(UnderlyingObjectToTest->new(), type=>'mock');  
+	    $mock = Test::Mock::Wrapper->new(UnderlyingObjectToTest->new(), type=>'mock');
 	};
 	it "suppports exact call number verification" => sub {
 	    $mock->addMock('foo');
@@ -249,4 +249,3 @@ use metaclass;
 sub ga {
     return 'farv';
 }
-
