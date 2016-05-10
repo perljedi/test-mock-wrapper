@@ -2,6 +2,8 @@ Revision history for {{$dist->name}}
 
 {{$NEXT}}
 
+  - Fix for DESTROY problems in 5.23.8
+
 0.17 Fri May 15 2015
 
   - require 5.18.0
